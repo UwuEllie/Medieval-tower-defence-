@@ -1,4 +1,11 @@
-public Projectiles projectile;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System;
+
+public class Enemies : MonoBehaviour
+{
+    public Projectiles projectile;
     [Header("Attributes")]
     public GameObject FloatingDamage;
     public int speed;
@@ -330,3 +337,4 @@ public Projectiles projectile;
         }
 
     }
+}
