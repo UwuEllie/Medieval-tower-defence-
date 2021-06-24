@@ -1,0 +1,45 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using TMPro;
+
+public class PlayerName : MonoBehaviour
+{
+    public string NameOfPlayer;
+    public string saveName;
+    public int saveScore;
+    public GameObject inputPanel;
+    public GameObject HighscoreTable;
+    public Transform Middle;
+
+    public TextMeshProUGUI inputText;
+    public TextMeshProUGUI loadedName;
+    GlobalData globalData;
+    // Start is called before the first frame update
+    void Start()
+    {
+        globalData = GlobalData.instance;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        NameOfPlayer = PlayerPrefs.GetString("name", "none");
+        loadedName.text = NameOfPlayer;
+    }
+
+    public void SetName()
+    {
+        saveName = inputText.text;
+        PlayerPrefs.SetString("name", saveName);
+        saveScore = globalData.wallhealth;
+        PlayerPrefs.SetInt("score", saveScore);
+        inputPanel.SetActive(false);
+        
+        
+    }
+
+    public void InstantiateTable()
+    {
+        Instantiate(HighscoreTable.gameObject, transform.position, transform.rotation);
+    }
