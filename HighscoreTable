@@ -1,0 +1,119 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class HighscoreTable : MonoBehaviour
+{
+    public Transform container;
+    public Transform entryTemplate;
+    private List<HighscoreEntry> highscoreEntryList;
+    private List<Transform> highscoreEntryTransformList;
+    GlobalData globalData;
+
+    private void Start()
+    {
+        globalData = GlobalData.instance;
+    }
+    private void Awake()
+    {
+        
+        
+        entryTemplate.gameObject.SetActive(false);
+        string inputtedName = PlayerPrefs.GetString("name");
+        int score = PlayerPrefs.GetInt("score");
+        AddHighscoreEntry(score, inputtedName);
+       
+        string jsonString = PlayerPrefs.GetString("highscoreTable");
+        Highscores highscores = JsonUtility.FromJson<Highscores>(jsonString);
+
+        highscoreEntryTransformList = new List<Transform>();
+
+        foreach (HighscoreEntry highscoreEntry in highscores.highscoreEntryList)
+        {
+            CreateHighScoreEntryTransform(highscoreEntry, container, highscoreEntryTransformList);
+        }
+
+    }
+
+    private void CreateHighScoreEntryTransform(HighscoreEntry highscoreEntry, Transform entryContainer, List<Transform> transformList)
+    {
+        float templateHeight = 20f;
+        Transform entryTransform = Instantiate(entryTemplate, entryContainer);
+        RectTransform entryRectTransform = entryTransform.GetComponent<RectTransform>();
+        entryRectTransform.anchoredPosition = new Vector2(0, -templateHeight * transformList.Count);
+        entryTransform.gameObject.SetActive(true);
+
+        int rank = transformList.Count + 1;
+        string rankString;
+
+        switch (rank)
+        {
+            default:
+                rankString = rank + "TH"; break;
+            case 1: rankString = "1ST"; break;
+            case 2: rankString = "2ND"; break;
+            case 3: rankString = "3RD"; break;
+        }
+
+        string name = highscoreEntry.name;
+        int score = highscoreEntry.score;
+        entryTransform.Find("posText").GetComponent<TMP_Text>().text = rankString;
+        entryTransform.Find("nameText").GetComponent<TMP_Text>().text = name; //
+        entryTransform.Find("scoreText").GetComponent<TMP_Text>().text = score.ToString(); //set to global data lives
+        transformList.Add(entryTransform);
+    }
+
+    private void AddHighscoreEntry(int score, string name)
+    {
+        HighscoreEntry highscoreEntry = new HighscoreEntry { score = score, name = name };
+
+        string jsonString = PlayerPrefs.GetString("highscoreTable");
+        Highscores highscores = JsonUtility.FromJson<Highscores>(jsonString);
+
+        highscores.highscoreEntryList.Add(highscoreEntry);
+        for (int i = 0; i < highscores.highscoreEntryList.Count; i++)
+        {
+            for (int j = i + 1; j < highscores.highscoreEntryList.Count; j++)
+            {
+                if (highscores.highscoreEntryList[j].score > highscores.highscoreEntryList[i].score)
+                {
+                    HighscoreEntry tmp = highscores.highscoreEntryList[i];
+                    highscores.highscoreEntryList[i] = highscores.highscoreEntryList[j];
+                    highscores.highscoreEntryList[j] = tmp;
+                }
+            }
+        }
+        int n = 6;
+        if (highscores.highscoreEntryList.Count >= n)
+        {
+            highscores.highscoreEntryList.RemoveAt(n - 1);
+        }
+        string json = JsonUtility.ToJson(highscores);
+        
+        PlayerPrefs.SetString("highscoreTable", json);
+        PlayerPrefs.Save();
+
+        return;
+
+    }
+
+    [System.Serializable]
+    private class Highscores
+    {
+        public List<HighscoreEntry> highscoreEntryList;
+
+
+    }
+
+    [System.Serializable]
+    private class HighscoreEntry
+    {
+        public int score;
+        public string name;
+    }
+
+    
+
+}
