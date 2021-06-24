@@ -1,0 +1,52 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class Menus : MonoBehaviour
+{
+   public GameObject PausePanel;
+
+   
+    public void Toggle()
+    {
+        PausePanel.SetActive(!PausePanel.activeSelf); //if on turns off and off turns on 
+
+        if (PausePanel.activeSelf )
+        {
+            Time.timeScale = 0; //freezes everything in the scene
+        }
+        else
+        {
+            Time.timeScale = 1;
+        }
+    }
+
+    public void retry()
+    {
+        Toggle();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void GameLink()
+    {
+        Time.timeScale = 1;
+        SceneManager.LoadScene("Game");
+    }
+    public void QuitGame()
+    {
+        Time.timeScale = 1;
+        Application.Quit();
+    }
+    public void Menu()
+    {
+        Time.timeScale = 1;
+        SceneManager.LoadScene("Menu");
+    }
+    public void Leaderboard()
+    {
+        Time.timeScale = 1;
+        SceneManager.LoadScene("Leaderboard");
+    }
+    
+}
