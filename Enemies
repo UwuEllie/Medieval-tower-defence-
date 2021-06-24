@@ -1,0 +1,332 @@
+public Projectiles projectile;
+    [Header("Attributes")]
+    public GameObject FloatingDamage;
+    public int speed;
+    public int MaxHealth;
+    public float attackSpeed;
+    public int enemyhealth;
+    public int enemyDamage;
+    public double enemyWorth;
+    private int enemyCrit;
+    private double damage;
+    private int reducedDamage;
+    private int tickDamage;
+    private float Spawn;
+    public HealthBar healthBar;
+
+    [Header("Colour stuff")]
+    public Color StatusColour;
+    private Renderer rend;
+    private Color NormalColour;
+
+    [Header("Bools Used")]
+    public GameObject Skeleton;
+    public bool Boss;
+    public bool IsDead = false;
+    public bool IsRunning;
+    public bool IsAttacking;
+    public bool burned;
+    public bool poisoned;
+    public bool blinded;
+    public bool slowed;
+    public int slowSpeed;
+    private bool inCoroutine = false;
+    private bool StatusEffect = false;
+
+    [Header("Ground summons targeting")]
+    public Transform groundSummonCheck;
+    private bool MustAttack;
+    public LayerMask groundSummonLayer;
+    private Transform target;
+    private GameObject summon;
+    public GameObject SummonAttacking;
+    public string EnemyTag = "Enemy";
+    bool getAttackingTarget;
+    public bool hasHealthBar;
+
+    [Header("Script references")]
+    public GlobalData globalData;
+    Shop shop;
+    private Animator anim;
+
+    void Start()
+    {
+        globalData = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<GlobalData>();
+        anim = GetComponent<Animator>();
+        rend = GetComponent<Renderer>();
+        NormalColour = rend.material.color;
+        shop = Shop.instance;
+        reducedDamage = (int)damage;
+        if (hasHealthBar)
+        {
+            enemyhealth = MaxHealth;
+            healthBar.SetMaxHealth(MaxHealth);
+        }
+        
+        
+    }
+
+    void Update()
+    {
+        abilitytest();
+        MoveUntilWall();
+        anim.SetBool("IsRunning", IsRunning);
+        anim.SetBool("IsAttacking", IsAttacking || MustAttack);
+        if (shop.Bartering)
+        {
+            enemyWorth = enemyWorth * 1.5;
+            Math.Round(enemyWorth, 1, MidpointRounding.AwayFromZero);
+            shop.Bartering = false;
+
+        }
+        if (shop.Aura)
+        {
+            reducedDamage -= 5;
+            shop.Aura = false;
+
+        }
+
+
+        if (enemyhealth < 1)
+        {
+            shop.money += (int)enemyWorth;
+
+            if (shop.GetDamage == true)
+            {
+                shop.AdditonalDamage += 1;
+                shop.BAdontknowwhattocallthis += 1;
+            }
+
+            if (poisoned && shop.necromancer)
+            {
+                Spawn = UnityEngine.Random.Range(1f, 100f);
+                if (Spawn <= shop.SummonChance)
+                {
+                    Instantiate(Skeleton.gameObject, transform.position, transform.rotation);
+                }
+            }
+            Destroy(gameObject); 
+        }
+
+    }
+
+    private void FixedUpdate()
+    {
+        MustAttack = Physics2D.OverlapCircle(groundSummonCheck.position, 0.5f, groundSummonLayer);
+
+        if (target == null && MustAttack)
+        {
+            NewTarget();
+            Debug.Log(target);
+            return;
+        }
+        else if (target != null && MustAttack)
+        {
+            StartAttack();
+        }
+       
+        
+    }
+
+    void HitTarget()
+    {
+        if (!blinded)
+        {
+            Projectiles projectile = target.gameObject.GetComponent<Projectiles>();
+            projectile.GetDamageFromEnemy(enemyDamage);
+            projectile.TakeDamage();
+        }
+        
+
+
+    }
+
+    IEnumerator Attack()
+    {
+        inCoroutine = true;
+        IsAttacking = true;
+        IsRunning = false;
+        if (blinded)
+        {
+            GameObject points = Instantiate(FloatingDamage, transform.position, Quaternion.identity) as GameObject;
+            points.transform.GetChild(0).GetComponent<TextMesh>().text = "Miss!";
+            yield return new WaitForSeconds(attackSpeed);
+            Debug.Log("miss");
+            inCoroutine = false;
+            yield break;
+        }
+        
+        yield return new WaitForSeconds(1f);
+        
+        inCoroutine = false;
+
+    }
+
+    public void StartAttack()
+    {
+        if (!inCoroutine)
+        {
+            StartCoroutine(Attack());
+        }
+
+    }
+
+    public void abilitytest()
+    {
+        if (!StatusEffect && poisoned || burned)
+        {
+            StartCoroutine(BurnOrPoison());
+        }
+        if (!StatusEffect && slowed)
+        {
+            StartCoroutine(Slow());
+        }
+    }
+
+    IEnumerator BurnOrPoison()
+    {
+        StatusEffect = true;
+        for (int i = 0; i < 10; i++)
+        {
+            if (poisoned == true)
+            {
+
+                StatusColour = new Color32(120, 189, 109, 255);
+                rend.material.color = StatusColour;
+                GameObject points = Instantiate(FloatingDamage, transform.position, Quaternion.identity) as GameObject;
+                points.transform.GetChild(0).GetComponent<TextMesh>().text = tickDamage.ToString();
+            }
+            if (burned == true)
+            {
+                StatusColour = new Color32(219, 181, 136, 255);
+                rend.material.color = StatusColour;
+                GameObject points = Instantiate(FloatingDamage, transform.position, Quaternion.identity) as GameObject;
+                points.transform.GetChild(0).GetComponent<TextMesh>().text = tickDamage.ToString();
+
+            }
+            enemyhealth -= tickDamage;
+            
+            yield return new WaitForSeconds(1);
+           
+        }
+
+        gameObject.GetComponent<Renderer>().material.color = Color.white;
+        StatusEffect = false;
+        poisoned = false;
+        burned = false;
+    }
+
+    public void MoveUntilWall()
+    {
+        if (transform.position.x < 2.5 && !MustAttack)
+        {
+            transform.Translate(Vector2.right * Time.deltaTime * speed);
+            IsRunning = true;
+            IsAttacking = false;
+        }
+        if (transform.position.x >= 2.5 && !MustAttack)
+        {
+            transform.position = new Vector3(2.5f, transform.position.y, transform.position.z);
+            StartAttack();
+            
+        }
+    }
+
+    public void GetDamage(int enemyDamage)
+    {
+        damage = enemyDamage;
+
+        if (slowed)
+        {
+            damage = damage * shop.SlowDamage;
+            Math.Round(damage, 1, MidpointRounding.AwayFromZero);
+            Debug.Log(damage);
+        }
+    }
+
+    public void GetCritDamage(int enemyCritDamage)
+    {
+        enemyCrit = enemyCritDamage;
+        if (enemyCrit != 0)
+        {
+            GameObject points = Instantiate(FloatingDamage, transform.position, Quaternion.identity) as GameObject;
+            points.transform.GetChild(0).GetComponent<TextMesh>().text = enemyCrit.ToString();
+        }
+        
+    }
+
+    public void GetTickDamage(int tick)
+    {
+        tickDamage = tick;
+        abilitytest();
+    }
+
+    public void TakeDamage()
+    {
+        enemyhealth -= (int)damage;
+        enemyhealth -= enemyCrit;
+
+        if (hasHealthBar)
+        {
+            healthBar.SetHealth(enemyhealth);
+        }
+       
+    }
+
+    IEnumerator Slow()
+    {
+        StatusEffect = true;
+        slowSpeed = speed;
+        speed -= (int)shop.slowAmount;
+        for (int i = 0; i < tickDamage; i++)
+        {
+
+            Debug.Log(speed);
+            StatusColour = new Color32(116, 160, 163, 255);
+            rend.material.color = StatusColour;
+
+            yield return new WaitForSeconds(1);
+        }
+
+        rend.material.color = Color.white;
+        speed = slowSpeed;
+        slowed = false;
+        StatusEffect = false;
+    }
+
+    void NewTarget()
+    {
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag(EnemyTag);
+        float ShortestDistance = Mathf.Infinity;
+        GameObject nearestEnemy = null;
+        foreach (GameObject enemy in enemies)
+        {
+            float DistanceToEnemy = Vector3.Distance(transform.position, enemy.transform.position);
+            if (DistanceToEnemy < ShortestDistance)
+            {
+                ShortestDistance = DistanceToEnemy;
+                nearestEnemy = enemy;
+            }
+        }
+
+        if (nearestEnemy != null)
+        {
+            target = nearestEnemy.transform;
+        }
+    }
+
+    void doDamageToWall()
+    {
+        if (!MustAttack && !blinded)
+        {
+            globalData.wallhealth -= enemyDamage;
+            return;
+        }
+        if (!blinded)
+        {
+            Projectiles projectile = target.gameObject.GetComponent<Projectiles>();
+            projectile.GetDamageFromEnemy(enemyDamage);
+            projectile.TakeDamage();
+        }
+
+    }
