@@ -98,6 +98,7 @@ public class WaveSpawnerNew : MonoBehaviour
 
             for (int x = 0; x < wave[nextWave].waveSequences[i].count; x++)  
             {
+                int randomNode = Random.Range(minSpawn, maxSpawn);
                 Instantiate(wave[nextWave].waveSequences[i].enemyPrefab, SceneData.PathNodes[randomNode].transform.position + Offset, Quaternion.identity); //Spawns the enemy at random spawn point
                 yield return new WaitForSeconds(1 / wave[nextWave].waveSequences[i].spawnRate); //Waits 
             }
